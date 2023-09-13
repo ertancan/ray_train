@@ -600,13 +600,9 @@ def main():
     with open(args.special_token_path, "r") as json_file:
         special_tokens = json.load(json_file)["tokens"]
 
-    assert (
-        "ANYSCALE_ARTIFACT_STORAGE" in os.environ
-    ), "ANYSCALE_ARTIFACT_STORAGE env var must be set!"
-    artifact_storage = os.environ["ANYSCALE_ARTIFACT_STORAGE"]
-    user_name = re.sub(r"\s+", "__", os.environ.get("ANYSCALE_USERNAME", "user"))
+
     storage_path = (
-        f"{artifact_storage}/{user_name}/ft_llms_with_deepspeed/{args.model_name}"
+        f"./ft_llms_with_deepspeed/{args.model_name}"
     )
 
     trainer = TorchTrainer(
@@ -644,8 +640,12 @@ def main():
     print(best_checkpoint)
     print(f"With perplexity: {best_checkpoint_metrics['perplexity']}")
     if args.result_upload_path:
-        print("Uploading results to ", args.result_upload_path)
-        os.system(f"aws s3 sync {result.path} {args.result_upload_path}")
+        result_upload_dir = args.result_upload_path + 'result/'
+        print("Uploading results to ", str(result_upload_dir))
+        os.system(f"aws s3 cp {result.path} {result_upload_dir} --recursive")
+        best_checkpoint_upload_dir = args.result_upload_path + 'best_checkpoint/'
+        print("Uploading best checkpoint to " + str(best_checkpoint_upload_dir))
+        os.system(f"aws s3 cp {best_checkpoint} {best_checkpoint_upload_dir} --recursive")
 
 
 if __name__ == "__main__":
