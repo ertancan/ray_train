@@ -2,7 +2,7 @@ cluster_name: verita-security-llama-2-7b
 
 # The maximum number of worker nodes to launch in addition to the head
 # node.
-max_workers: 16
+max_workers: 17
 
 docker:
   image: "rayproject/ray-ml:latest-gpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
@@ -29,7 +29,7 @@ available_node_types:
         # The resources provided by this node type.
         resources: {"CPU": 4}
         node_config:
-            machineType: m5.xlarge
+            InstanceType: m5.xlarge
            
     ray_worker_small:
         # The minimum number of worker nodes of this type to launch.
@@ -45,7 +45,7 @@ available_node_types:
         # For more documentation on available fields, see:
         # https://cloud.google.com/compute/docs/reference/rest/v1/instances/insert
         node_config:
-            machineType: g5.4xlarge
+            InstanceType: g5.4xlarge
 head_node_type: ray_head_default
 
 head_setup_commands:
