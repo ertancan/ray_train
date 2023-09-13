@@ -605,6 +605,7 @@ def main():
         f"/mnt/local_storage/ft_llms_with_deepspeed/{args.model_name}"
     )
 
+    print('Num workers: ', args.num_devices)
     trainer = TorchTrainer(
         training_function,
         train_loop_config={
