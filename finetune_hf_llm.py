@@ -602,7 +602,7 @@ def main():
 
 
     storage_path = (
-        f"./ft_llms_with_deepspeed/{args.model_name}"
+        f"/mnt_local_storage/ft_llms_with_deepspeed/{args.model_name}"
     )
 
     trainer = TorchTrainer(

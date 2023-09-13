@@ -8,7 +8,7 @@ def main():
         os.mkdir("data")
 
     print("Fetching the training data from s3://forensic-training-data/jsonl/")
-    os.system(f"aws s3 cp s3://forensic-training-data/jsonl/ data/ --recursive")
+    os.system(f"aws s3 cp s3://forensic-training-data/jsonl/ training_data/ --recursive")
     
 
     with open("data/tokens.json", "w") as f:
