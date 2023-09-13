@@ -36,6 +36,7 @@ fine_tune() {
         --special_token_path "${token_path}" \
         --num-checkpoints-to-keep 1 \
         --num-epochs 1 \
+        --result-upload-path "s3://llama-finetune-output/ray/" \
         "${params[@]}"; then
         echo "Failed to fine-tune the model. Exiting..."
         exit 1
@@ -44,7 +45,7 @@ fine_tune() {
 
 # Variables for cleaner handling
 BASE_DIR="/mnt/local_storage"
-DATA_DIR="./data"
+DATA_DIR="gs://verita-finetune-data"
 TRAIN_PATH="${DATA_DIR}/train.jsonl"
 TEST_PATH="${DATA_DIR}/test.jsonl"
 TOKEN_PATH="${DATA_DIR}/tokens.json"
