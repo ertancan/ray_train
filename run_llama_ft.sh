@@ -46,7 +46,7 @@ fine_tune() {
 
 # Variables for cleaner handling
 BASE_DIR="/mnt/local_storage"
-DATA_DIR="s3://forensic-training-data/ray/"
+DATA_DIR="training_data"
 TRAIN_PATH="${DATA_DIR}/train.jsonl"
 TEST_PATH="${DATA_DIR}/test.jsonl"
 TOKEN_PATH="${DATA_DIR}/tokens.json"

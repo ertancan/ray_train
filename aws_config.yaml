@@ -52,6 +52,8 @@ head_setup_commands:
     - pip install pip install ray==2.7.0rc0
     - rm -rf ray_train
     - git clone https://github.com/ertancan/ray_train.git
+    - rm -rf training_data
+    - aws s3 cp s3://forensic-training-data/ray/ training_data --recursive
     - cd ray_train && chmod +x ./run_llama_ft.sh && ./run_llama_ft.sh --size=7b
 
 worker_setup_commands:
