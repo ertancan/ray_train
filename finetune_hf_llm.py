@@ -154,7 +154,6 @@ def checkpoint_model(
     )
     print(status_msg)
 
-@ray.remote
 def training_function(kwargs: dict):
     print("training_function called")
 
