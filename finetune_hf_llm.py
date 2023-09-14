@@ -624,7 +624,7 @@ def main():
         scaling_config=train.ScalingConfig(
             num_workers=args.num_devices,
             use_gpu=True,
-            resources_per_worker={"GPU": 1},
+            resources_per_worker={"GPU": 1, "CPU": 4},
         ),
         datasets={"train": train_ds, "valid": valid_ds},
         dataset_config=ray.train.DataConfig(datasets_to_split=["train", "valid"]),
