@@ -62,3 +62,5 @@ worker_setup_commands:
     - pip install pip install ray==2.7.0rc0
     - sudo mkdir /mnt/local_storage || true
     - sudo chmod 777 /mnt/local_storage
+    - sudo apt-get update
+    - sudo apt-get install awscli -y --fix-missing
