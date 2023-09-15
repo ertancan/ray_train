@@ -1,4 +1,4 @@
-cluster_name: verita-security-llama-2-7b
+cluster_name: verita-security-7b
 
 # The maximum number of worker nodes to launch in addition to the head
 # node.
@@ -25,15 +25,25 @@ auth:
 
 available_node_types:
     worker:
-        min_workers: 16
-        max_workers: 16
+        min_workers: 4
+        max_workers: 4
         node_config:
             InstanceType: g5.4xlarge
+            BlockDeviceMappings:
+                - DeviceName: /dev/sda1
+                  Ebs:
+                      VolumeSize: 140
+                      VolumeType: gp3
     ray.head.default:
         min_workers: 1
         max_workers: 1
         node_config:
-            InstanceType: g5.xlarge
+            InstanceType: m5.xlarge
+            BlockDeviceMappings:
+                - DeviceName: /dev/sda1
+                  Ebs:
+                      VolumeSize: 140
+                      VolumeType: gp3
 
 head_node_type: ray.head.default
 
@@ -46,7 +56,7 @@ head_setup_commands:
     - rm -rf ray_train
     - git clone https://github.com/ertancan/ray_train.git
     - aws s3 cp s3://forensic-training-data/ray/ ray_train/training_data --recursive
-    - cd ray_train && chmod +x ./run_llama_ft.sh && ./run_llama_ft.sh --size=7b
+    - chmod +x ray_train/run_llama_ft.sh
 
 worker_setup_commands:
     - pip install pip install ray==2.7.0rc0

@@ -37,7 +37,7 @@ fine_tune() {
         --num-checkpoints-to-keep 1 \
         --num-epochs 1 \
         --result-upload-path "s3://llama-finetune-output/ray/" \
-        --num-devices 16 \
+        --num-devices 4 \
         "${params[@]}"; then
         echo "Failed to fine-tune the model. Exiting..."
         exit 1
