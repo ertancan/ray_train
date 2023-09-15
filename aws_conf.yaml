@@ -2,8 +2,8 @@ cluster_name: verita-security-7b
 
 # The maximum number of worker nodes to launch in addition to the head
 # node.
-min_workers: 16
-max_workers: 17
+min_workers: 4
+max_workers: 5
 upscaling_speed: 1.0
 docker:
   image: "rayproject/ray-ml:latest-gpu" # You can change this to latest-cpu if you don't need GPU support and want a faster startup
@@ -52,14 +52,16 @@ head_setup_commands:
     - sudo chmod 777 /mnt/local_storage
     - sudo apt-get update
     - sudo apt-get install awscli -y --fix-missing
-    - pip install pip install ray==2.7.0rc0
+    - pip install ray==2.7.0rc0
+    - pip install sentencepiece
     - rm -rf ray_train
     - git clone https://github.com/ertancan/ray_train.git
     - aws s3 cp s3://forensic-training-data/ray/ ray_train/training_data --recursive
     - chmod +x ray_train/run_llama_ft.sh
 
 worker_setup_commands:
-    - pip install pip install ray==2.7.0rc0
+    - pip install ray==2.7.0rc0
+    - pip install sentencepiece
     - sudo mkdir /mnt/local_storage || true
     - sudo chmod 777 /mnt/local_storage
     - sudo apt-get update
