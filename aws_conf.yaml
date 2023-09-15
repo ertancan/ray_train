@@ -41,7 +41,7 @@ available_node_types:
             BlockDeviceMappings:
                 - DeviceName: /dev/sda1
                   Ebs:
-                      VolumeSize: 200
+                      VolumeSize: 250
                       VolumeType: gp3
 
 head_node_type: ray.head.default
