@@ -2,7 +2,7 @@ cluster_name: verita-security-7b
 
 # The maximum number of worker nodes to launch in addition to the head
 # node.
-min_workers: 4
+min_workers: 3
 max_workers: 4
 upscaling_speed: 1.0
 docker:
@@ -26,8 +26,8 @@ auth:
 
 available_node_types:
     worker:
-        min_workers: 4
-        max_workers: 4
+        min_workers: 3
+        max_workers: 3
         node_config:
             InstanceType: g5.4xlarge
             BlockDeviceMappings:
@@ -36,13 +36,18 @@ available_node_types:
                       VolumeSize: 200
                       VolumeType: gp3
     ray.head.default:
+        max_workers: 1
+        min_workers: 1
         node_config:
-            InstanceType: m5.xlarge
-            BlockDeviceMappings:
-                - DeviceName: /dev/sda1
-                  Ebs:
-                      VolumeSize: 250
-                      VolumeType: gp3
+          InstanceType: g5.8xlarge
+          BlockDeviceMappings:
+              - DeviceName: /dev/sda1
+                Ebs:
+                    VolumeSize: 200
+                    VolumeType: gp3
+        resources:
+            large_cpu_mem: 1
+
 
 head_node_type: ray.head.default
 
@@ -58,6 +63,7 @@ head_setup_commands:
     - sudo chmod 777 /mnt/local_storage
     - chmod +x ray_train/run_llama_ft.sh
 
+
 worker_setup_commands:
     - sudo apt-get update
     - sudo apt-get install awscli -y --fix-missing
@@ -67,4 +73,3 @@ worker_setup_commands:
     - pip install -r ray_train/requirements.txt
     - sudo mkdir /mnt/local_storage || true
     - sudo chmod 777 /mnt/local_storage
-
