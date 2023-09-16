@@ -520,7 +520,7 @@ def parse_args():
         ),
         default=None,
     )
-    parser.add_argument("--lr", type=float, default=5e-6, help="Learning rate to use.")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate to use.")
 
     parser.add_argument(
         "--ctx-len", type=int, default=512, help="Learning rate to use."
