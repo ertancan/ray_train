@@ -18,7 +18,7 @@ docker:
 
 provider:
     type: aws
-    region: us-west-2
+    region: eu-central-1
 
 auth:
   ssh_user: ubuntu
@@ -49,7 +49,7 @@ head_setup_commands:
     - rm -rf ray_train
     - git clone https://github.com/ertancan/ray_train.git
     - pip install -r ray_train/requirements.txt
-    - aws s3 cp s3://verita-train/ray/ ray_train/training_data --recursive
+    - aws s3 cp s3://forensic-training-data/ray/ ray_train/training_data --recursive
     - sudo mkdir /mnt/local_storage || true
     - sudo chmod 777 /mnt/local_storage
     - chmod +x ray_train/run_llama_ft.sh

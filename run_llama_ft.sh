@@ -36,7 +36,7 @@ fine_tune() {
         --special_token_path "${token_path}" \
         --num-checkpoints-to-keep 1 \
         --num-epochs 1 \
-        --result-upload-path "s3://verita-llm-finetune-west-2/ray/" \
+        --result-upload-path "s3://llama-finetune-output/ray/" \
         --num-devices 4 \
         "${params[@]}"; then
         echo "Failed to fine-tune the model. Exiting..."
