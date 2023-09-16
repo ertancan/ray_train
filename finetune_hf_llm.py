@@ -5,7 +5,7 @@ import json
 import math
 import os
 from pathlib import Path
-import re
+import random
 import tempfile
 import time
 import tree
@@ -640,12 +640,12 @@ def main():
     print(best_checkpoint)
     print(f"With perplexity: {best_checkpoint_metrics['perplexity']}")
     if args.result_upload_path:
-        result_upload_dir = args.result_upload_path + 'result/'
+        result_upload_dir = args.result_upload_path + 'result/' + str(random.randint(0, 1000000)) + '/'
         print("Uploading results to ", str(result_upload_dir))
         os.system(f"aws s3 cp {result.path} {result_upload_dir} --recursive")
-        best_checkpoint_upload_dir = args.result_upload_path + 'best_checkpoint/'
-        print("Uploading best checkpoint to " + str(best_checkpoint_upload_dir))
-        os.system(f"aws s3 cp {best_checkpoint} {best_checkpoint_upload_dir} --recursive")
+        # best_checkpoint_upload_dir = args.result_upload_path + 'best_checkpoint/'
+        # print("Uploading best checkpoint to " + str(best_checkpoint_upload_dir))
+        # os.system(f"aws s3 cp {best_checkpoint.path} {best_checkpoint_upload_dir} --recursive")
 
 
 if __name__ == "__main__":
