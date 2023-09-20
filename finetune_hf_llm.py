@@ -9,6 +9,7 @@ import random
 import tempfile
 import time
 import tree
+import copy
 from typing import Tuple
 
 try:
@@ -52,6 +53,56 @@ def get_number_of_params(model: nn.Module):
     state_dict = model.state_dict()
     return sum(p.numel() for p in state_dict.values())
 
+
+def verita_collate_fn(batch, tokenizer, block_size, device):
+    IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
+
+    question_column_name = 'question'
+    answer_column_name = 'answer'
+    final_input_ids = []
+    final_labels = []
+    final_attention_mask = []
+    for i in range(len(batch[question_column_name])):
+        question = batch[question_column_name][i]
+        example_row = question + batch[answer_column_name][i]
+        just_question_encoded = tokenizer.encode(question)
+
+        encoded_example = torch.tensor(
+            tokenizer.encode(example_row), dtype=torch.int64)
+
+        padding = block_size - encoded_example.shape[0]
+        if padding > 0:
+            # Padding with -1 to be able to mask later
+            encoded_example = torch.cat(
+                (encoded_example, torch.zeros(padding, dtype=torch.int64) - 1))
+
+        elif padding < 0:
+            encoded_example = encoded_example[: block_size]
+
+        labels = copy.deepcopy(encoded_example)
+        labels[: len(just_question_encoded)] = -1
+        example_mask = encoded_example.ge(0)
+        label_mask = labels.ge(0)
+        encoded_example[~example_mask] = 0
+        labels[~label_mask] = IGNORE_INDEX
+        example_mask = example_mask.float()
+        label_mask = label_mask.float()
+
+        final_input_ids.append(torch.tensor(
+            [encoded_example.tolist(),], dtype=torch.int64))
+        final_labels.append(torch.tensor(
+            [labels.tolist(), ], dtype=torch.int64))
+        final_attention_mask.append(torch.tensor(
+            [example_mask.tolist(), ], dtype=torch.int64))
+
+    final_input_ids = torch.cat(final_input_ids, dim=0).to(device)
+    final_labels = torch.cat(final_labels, dim=0).to(device)
+    final_attention_mask = torch.cat(final_attention_mask, dim=0).to(device)
+
+    return {'input_ids': final_input_ids,
+            'labels': final_labels,
+            'attention_mask': final_attention_mask
+            }
 
 def collate_fn(batch, tokenizer, block_size, device):
     out_batch = tokenizer(
@@ -210,7 +261,7 @@ def training_function(kwargs: dict):
     _test_tokenizer(args.model_name)
     tokenizer = get_tokenizer(model_name=args.model_name, special_tokens=special_tokens)
     collate_partial = functools.partial(
-        collate_fn,
+        verita_collate_fn,
         tokenizer=tokenizer,
         block_size=config["block_size"],
         device=accelerator.device,

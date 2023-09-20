@@ -18,3 +18,4 @@ lm_eval==0.3.0
 tiktoken==0.1.2
 sentencepiece==0.1.99
 urllib3<1.27
+dm-tree

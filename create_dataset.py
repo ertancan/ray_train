@@ -7,8 +7,8 @@ def main():
     if not os.path.exists("data"):
         os.mkdir("data")
 
-    print("Fetching the training data from s3://forensic-training-data/ray/")
-    os.system(f"aws s3 cp s3://forensic-training-data/ray/ training_data/ --recursive")
+    print("Fetching the training data from s3://verita-llm-finetune-west-2/ray/")
+    os.system(f"aws s3 cp s3://verita-llm-finetune-west-2/ray/ training_data/ --recursive")
     
 
     with open("data/tokens.json", "w") as f:

@@ -31,11 +31,21 @@ available_node_types:
         max_workers: 3
         node_config:
             InstanceType: g5.4xlarge
+            BlockDeviceMappings:
+                - DeviceName: /dev/sda1
+                  Ebs:
+                      VolumeSize: 200
+                      VolumeType: gp3
     ray.head.default:
         max_workers: 1
         min_workers: 0
         node_config:
           InstanceType: g5.8xlarge
+          BlockDeviceMappings:
+                - DeviceName: /dev/sda1
+                  Ebs:
+                      VolumeSize: 200
+                      VolumeType: gp3
         resources:
             large_cpu_mem: 1
 
