@@ -69,6 +69,10 @@ def download_model(
     s3_sync_args = s3_sync_args or []
     path = get_download_path(model_id)
 
+    if os.path.exists(path):
+        logger.info(f"Model already exists at {path}, not downloading again. We should probably have a force flag, right? Check utils.download_model if you want to write it.")
+        return
+
     cmd = (
         ["aws", "s3", "sync"]
         + s3_sync_args
