@@ -11,7 +11,7 @@ from transformers import (
     AutoTokenizer,
 )
 from torch.utils.data import TensorDataset
-MODEL_PATH = '/media/ertank/Data/ml/training/finetune/full_2/checkpoint_000000'
+MODEL_PATH = '/media/ertank/Data/ml/training/finetune/full_3/checkpoint_000000'
 
 
 def verita_collate_fn(batch, tokenizer, block_size, device):
@@ -27,39 +27,53 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
         example_row = question + batch[answer_column_name][i]
         just_question_encoded = tokenizer.encode(question)
 
-        encoded_example = torch.tensor(tokenizer.encode(example_row), dtype=torch.int64)
-
-        padding = block_size - encoded_example.shape[0]
-        if padding > 0:
-            # Padding with -1 to be able to mask later
-            encoded_example = torch.cat((encoded_example, torch.zeros(padding, dtype=torch.int64) - 1))
-
-        elif padding < 0:
-            encoded_example = encoded_example[: block_size]
+        encoded_example = torch.tensor(
+            tokenizer.encode(example_row), dtype=torch.int64)
 
         labels = copy.deepcopy(encoded_example)
         labels[: len(just_question_encoded)] = -1
+        padding = block_size - encoded_example.shape[0]
+        if padding > 0:
+            # Padding with -1 to be able to mask later
+            encoded_example = torch.cat(
+                (encoded_example, torch.zeros(padding, dtype=torch.int64) - 1))
+            labels = torch.cat(
+                (labels, torch.zeros(padding, dtype=torch.int64) - 1))
+        elif padding < 0:
+            if len(just_question_encoded) > block_size:
+                print ('Question is longer than block size, ignoring this example')
+                continue
+            encoded_example = encoded_example[: block_size]
+
         example_mask = encoded_example.ge(0)
         label_mask = labels.ge(0)
-        encoded_example[~example_mask] = 0
+        encoded_example[~example_mask] = tokenizer.pad_token_id
         labels[~label_mask] = IGNORE_INDEX
         example_mask = example_mask.float()
         label_mask = label_mask.float()
 
 
-        final_input_ids.append(torch.tensor([encoded_example.tolist(),], dtype=torch.int64))
-        final_labels.append(torch.tensor([labels.tolist(), ], dtype=torch.int64))
-        final_attention_mask.append(torch.tensor([example_mask.tolist(), ], dtype=torch.int64))
+        final_input_ids.append(torch.tensor(
+            [encoded_example.tolist(),], dtype=torch.int64))
+        final_labels.append(torch.tensor(
+            [labels.tolist(), ], dtype=torch.int64))
+        final_attention_mask.append(torch.tensor(
+            [example_mask.tolist(), ], dtype=torch.int64))
+        print('Example row: ' + str(example_row))
+        print('Question: ' + str(question))
+        print('Just question encoded: ' + str(just_question_encoded))
+        print('input ids: ' + str(encoded_example))
+        print('labels: ' + str(labels))
+        print('attention mask: ' + str(example_mask))
 
     final_input_ids = torch.cat(final_input_ids, dim=0).to(device)
     final_labels = torch.cat(final_labels, dim=0).to(device)
     final_attention_mask = torch.cat(final_attention_mask, dim=0).to(device)
 
-    ds = {'input_ids': final_input_ids,
-          'labels': final_labels,
-          'attention_mask': final_attention_mask
-          }
-    return ds
+    return {'input_ids': final_input_ids,
+            'labels': final_labels,
+            'attention_mask': final_attention_mask
+            }
 
 
 def collate_fn(batch, tokenizer, block_size, device):
@@ -123,10 +137,10 @@ def evaluate(
 def start_eval():
     print("Running evaluation ...")
     valid_ds = ray.data.read_json(
-        '/media/ertank/Data/ml/training/ray_verita/data/test_qa.jsonl')
+        '/media/ertank/Data/ml/training/ray_verita/data/test.jsonl')
     tokenizer = get_tokenizer(
-        special_tokens=["[INST]", "<<SYS>>", "<</SYS>>", "[/INST]", "<START_A>"])
-
+        special_tokens=["[INST]", "<<SYS>>", "<</SYS>>", "[/INST]", "<PAD>"])
+    tokenizer.pad_token = '<PAD>'
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_PATH,
         trust_remote_code=True,

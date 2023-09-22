@@ -62,6 +62,7 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
     final_input_ids = []
     final_labels = []
     final_attention_mask = []
+
     for i in range(len(batch[question_column_name])):
         question = batch[question_column_name][i]
         example_row = question + batch[answer_column_name][i]
@@ -70,24 +71,29 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
         encoded_example = torch.tensor(
             tokenizer.encode(example_row), dtype=torch.int64)
 
+        labels = copy.deepcopy(encoded_example)
+        labels[: len(just_question_encoded)] = -1
         padding = block_size - encoded_example.shape[0]
         if padding > 0:
             # Padding with -1 to be able to mask later
             encoded_example = torch.cat(
                 (encoded_example, torch.zeros(padding, dtype=torch.int64) - 1))
-
+            labels = torch.cat(
+                (labels, torch.zeros(padding, dtype=torch.int64) - 1))
         elif padding < 0:
+            if len(just_question_encoded) > block_size:
+                print ('Question is longer than block size, ignoring this example')
+                continue
             encoded_example = encoded_example[: block_size]
 
-        labels = copy.deepcopy(encoded_example)
-        labels[: len(just_question_encoded)] = -1
         example_mask = encoded_example.ge(0)
         label_mask = labels.ge(0)
-        encoded_example[~example_mask] = 0
+        encoded_example[~example_mask] = tokenizer.pad_token_id
         labels[~label_mask] = IGNORE_INDEX
         example_mask = example_mask.float()
         label_mask = label_mask.float()
 
+        # Converting 1d tensors to 2d tensors for pt
         final_input_ids.append(torch.tensor(
             [encoded_example.tolist(),], dtype=torch.int64))
         final_labels.append(torch.tensor(
@@ -132,8 +138,8 @@ def get_tokenizer(model_name, special_tokens):
     pretrained_path = get_pretrained_path(model_name)
     # Context for legacy=True: https://github.com/huggingface/transformers/issues/25176
     tokenizer = AutoTokenizer.from_pretrained(pretrained_path, legacy=True)
-    tokenizer.pad_token = tokenizer.eos_token
     tokenizer.add_tokens(special_tokens, special_tokens=True)
+    tokenizer.pad_token = '<pad>'
 
     return tokenizer
 
@@ -574,7 +580,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate to use.")
 
     parser.add_argument(
-        "--ctx-len", type=int, default=512, help="Learning rate to use."
+        "--ctx-len", type=int, default=512, help="Context length"
     )
 
     parser.add_argument(
