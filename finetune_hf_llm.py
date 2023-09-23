@@ -93,6 +93,16 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
         example_mask = example_mask.float()
         label_mask = label_mask.float()
 
+        if encoded_example.shape[0] != block_size:
+            print ('Example shape is not equal to block size, ignoring this example')
+            continue
+        if labels.shape[0] != block_size:
+            print ('Labels shape is not equal to block size, ignoring this example')
+            continue
+        if example_mask.shape[0] != block_size:
+            print ('Example mask shape is not equal to block size, ignoring this example')
+            continue
+
         # Converting 1d tensors to 2d tensors for pt
         final_input_ids.append(torch.tensor(
             [encoded_example.tolist(),], dtype=torch.int64))
