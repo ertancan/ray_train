@@ -44,7 +44,7 @@ available_node_types:
           BlockDeviceMappings:
                 - DeviceName: /dev/sda1
                   Ebs:
-                      VolumeSize: 200
+                      VolumeSize: 300
                       VolumeType: gp3
         resources:
             large_cpu_mem: 1

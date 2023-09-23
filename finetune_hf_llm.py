@@ -120,6 +120,57 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
             'attention_mask': final_attention_mask
             }
 
+def question_answer_collate_fn(batch, tokenizer, block_size, device):
+    IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
+    question_column_name = 'question'
+    answer_column_name = 'answer'
+    final_input_ids = []
+    final_labels = []
+    final_attention_mask = []
+    for i in range(len(batch[question_column_name])):
+        example = batch[question_column_name][i] + batch[answer_column_name][i]
+        question = batch[question_column_name][i]
+        prompt = torch.tensor(
+            tokenizer.encode(question), dtype=torch.int64
+        )
+        example = tokenizer.encode(example)
+        example.append(tokenizer.eos_token_id)
+        example = torch.tensor(
+            example, dtype=torch.int64
+        )
+        # To have at least some answering
+        if prompt.shape[0] > block_size - 3:
+            print('Question is very long, ignoring this example')
+            continue
+        padding = block_size - example.shape[0]
+        if padding > 0:
+            example = torch.cat((example, torch.zeros(padding, dtype=torch.int64) - 1))
+        elif padding < 0:
+            example = example[: block_size]
+        labels = copy.deepcopy(example)
+        labels[: len(prompt)] = -1
+        example_mask = example.ge(0)
+        label_mask = labels.ge(0)
+        example[~example_mask] = 0
+        labels[~label_mask] = IGNORE_INDEX
+        example_mask = example_mask.float()
+        label_mask = label_mask.float()
+
+        final_input_ids.append(torch.tensor(
+            [example.tolist(),], dtype=torch.int64))
+        final_labels.append(torch.tensor(
+            [labels.tolist(), ], dtype=torch.int64))
+        final_attention_mask.append(torch.tensor(
+            [example_mask.tolist(), ], dtype=torch.int64))
+
+    final_input_ids = torch.cat(final_input_ids, dim=0).to(device)
+    final_labels = torch.cat(final_labels, dim=0).to(device)
+    final_attention_mask = torch.cat(final_attention_mask, dim=0).to(device)
+
+    return {'input_ids': final_input_ids,
+            'labels': final_labels,
+            'attention_mask': final_attention_mask
+            }
 def collate_fn(batch, tokenizer, block_size, device):
     out_batch = tokenizer(
         list(batch["input"]),
@@ -277,7 +328,7 @@ def training_function(kwargs: dict):
     _test_tokenizer(args.model_name)
     tokenizer = get_tokenizer(model_name=args.model_name, special_tokens=special_tokens)
     collate_partial = functools.partial(
-        verita_collate_fn,
+        question_answer_collate_fn,
         tokenizer=tokenizer,
         block_size=config["block_size"],
         device=accelerator.device,
@@ -305,6 +356,7 @@ def training_function(kwargs: dict):
         or "optimizer" not in accelerator.state.deepspeed_plugin.deepspeed_config
         else DummyOptim
     )
+    print("Optimizer class: ", optimizer_cls)
 
     optimizer = optimizer_cls(
         model.parameters(),
@@ -313,6 +365,7 @@ def training_function(kwargs: dict):
         weight_decay=OPTIM_WEIGHT_DECAY,
         eps=OPTIM_EPS,
     )
+    print("Optimizer: ", optimizer)
 
     # Instantiate scheduler
     # Creates Dummy Scheduler if `scheduler` was specified in the config file

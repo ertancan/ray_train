@@ -11,7 +11,7 @@ from transformers import (
     AutoTokenizer,
 )
 from torch.utils.data import TensorDataset
-MODEL_PATH = '/media/ertank/Data/ml/training/finetune/full_3/checkpoint_000000'
+MODEL_PATH = '/media/ertank/Data/ml/training/finetune/full_4/checkpoint_000000'
 
 
 def verita_collate_fn(batch, tokenizer, block_size, device):
@@ -52,6 +52,18 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
         example_mask = example_mask.float()
         label_mask = label_mask.float()
 
+        if encoded_example.shape[0] != block_size:
+            print ('Example shape is not equal to block size, ignoring this example')
+            continue
+        if labels.shape[0] != block_size:
+            print ('Labels shape is not equal to block size, ignoring this example')
+            continue
+        if example_mask.shape[0] != block_size:
+            print ('Example mask shape is not equal to block size, ignoring this example')
+            continue
+        print('Encoded example: ' + str(encoded_example))
+        print('Labels: ' + str(labels))
+        print('Example mask: ' + str(example_mask))
 
         final_input_ids.append(torch.tensor(
             [encoded_example.tolist(),], dtype=torch.int64))
@@ -59,12 +71,6 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
             [labels.tolist(), ], dtype=torch.int64))
         final_attention_mask.append(torch.tensor(
             [example_mask.tolist(), ], dtype=torch.int64))
-        print('Example row: ' + str(example_row))
-        print('Question: ' + str(question))
-        print('Just question encoded: ' + str(just_question_encoded))
-        print('input ids: ' + str(encoded_example))
-        print('labels: ' + str(labels))
-        print('attention mask: ' + str(example_mask))
 
     final_input_ids = torch.cat(final_input_ids, dim=0).to(device)
     final_labels = torch.cat(final_labels, dim=0).to(device)
@@ -75,6 +81,60 @@ def verita_collate_fn(batch, tokenizer, block_size, device):
             'attention_mask': final_attention_mask
             }
 
+def question_answer_collate_fn(batch, tokenizer, block_size, device):
+    IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
+    question_column_name = 'question'
+    answer_column_name = 'answer'
+    final_input_ids = []
+    final_labels = []
+    final_attention_mask = []
+    for i in range(len(batch[question_column_name])):
+        example = batch[question_column_name][i] + batch[answer_column_name][i]
+        question = batch[question_column_name][i]
+        prompt = torch.tensor(
+            tokenizer.encode(question), dtype=torch.int64
+        )
+        example = tokenizer.encode(example)
+        example.append(tokenizer.eos_token_id)
+        example = torch.tensor(
+            example, dtype=torch.int64
+        )
+        # To have at least some answering
+        if prompt.shape[0] > block_size - 3:
+            print('Question is very long, ignoring this example')
+            continue
+        padding = block_size - example.shape[0]
+        if padding > 0:
+            example = torch.cat((example, torch.zeros(padding, dtype=torch.int64) - 1))
+        elif padding < 0:
+            example = example[: block_size]
+        labels = copy.deepcopy(example)
+        labels[: len(prompt)] = -1
+        example_mask = example.ge(0)
+        label_mask = labels.ge(0)
+        example[~example_mask] = 0
+        labels[~label_mask] = IGNORE_INDEX
+        example_mask = example_mask.float()
+        label_mask = label_mask.float()
+        print('Encoded example: ' + str(example))
+        print('Labels: ' + str(labels))
+        print('Example mask: ' + str(example_mask))
+
+        final_input_ids.append(torch.tensor(
+            [example.tolist(),], dtype=torch.int64))
+        final_labels.append(torch.tensor(
+            [labels.tolist(), ], dtype=torch.int64))
+        final_attention_mask.append(torch.tensor(
+            [example_mask.tolist(), ], dtype=torch.int64))
+
+    final_input_ids = torch.cat(final_input_ids, dim=0).to(device)
+    final_labels = torch.cat(final_labels, dim=0).to(device)
+    final_attention_mask = torch.cat(final_attention_mask, dim=0).to(device)
+
+    return {'input_ids': final_input_ids,
+            'labels': final_labels,
+            'attention_mask': final_attention_mask
+            }
 
 def collate_fn(batch, tokenizer, block_size, device):
     out_batch = tokenizer(
@@ -109,14 +169,15 @@ def evaluate(
     losses = []
 
     eval_dataloader = eval_ds.iter_torch_batches(batch_size=bsize, **ds_kwargs)
+    print('Eval dataloader: ' + str(eval_dataloader))
     eval_ds_len = len(list(eval_ds.iter_batches(batch_size=bsize)))
-    for step, batch in tqdm.tqdm(
-        enumerate(eval_dataloader), total=eval_ds_len // (bsize + 1)
-    ):
+    for batch in eval_dataloader:
+        print('Batch: ' + str(batch))
         with torch.no_grad():
             outputs = model(**batch)
-        print(tokenizer.decode(torch.argmax(
-            outputs.logits[0], dim=1).tolist()))
+        for logit in outputs.logits:
+            print(tokenizer.decode(torch.argmax(
+                logit, dim=1).tolist()))
         loss = outputs.loss
         # The tensors are gathered by concatenating them on the first dimension, so we
         # add a new dimension to the scalar loss to get a tensor of shape (K,) for K
@@ -151,7 +212,7 @@ def start_eval():
     print(f"Done loading model")
     model.resize_token_embeddings(len(tokenizer))
     collate_partial = functools.partial(
-        verita_collate_fn,
+        question_answer_collate_fn,
         tokenizer=tokenizer,
         block_size=512,
         device='cpu',
